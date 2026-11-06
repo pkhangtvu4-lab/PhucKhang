@@ -24,20 +24,16 @@ def test_cong_khe():
     report = evaluate(whale_from(gate_route, 5), problem)
     assert report["valid"] and report["through_gate"]
     assert report["total"] < 220
-    # Cắt cổng nhưng lấn bão V3 (73,50): phải bị loại, through_gate = False.
     blocked = whale_from([[10,50],[20,50],[30,50],[40,50],[50,50],[60,50],[70,50],[80,50],[90,50],[95,50]], 5)
     report = evaluate(blocked, problem)
     assert crosses_gate(report["points"], problem)
     assert not report["valid"] and not report["geometry_ok"] and not report["through_gate"]
     assert report["bad_segments"] != []
-    # Đường vòng dưới, không cắt cổng: hợp lệ nhưng through_gate = False.
     below = whale_from([[10,10],[20,10],[30,10],[40,10],[50,10],[60,10],[70,10],[80,10],[90,10],[95,30]], 5)
     report = evaluate(below, problem)
     assert report["valid"] and not report["through_gate"]
-    # Ví dụ trong tài liệu: đoạn (30,48)->(50,52) cắt x=40 tại y=50.
     assert crosses_gate([[30,48],[50,52]], problem)
     assert not crosses_gate([[30,10],[50,12]], problem)
-    # Ca A không có cổng.
     assert not crosses_gate([[30,48],[50,52]], load_problem("co_ban"))
 
 
@@ -49,27 +45,23 @@ def test_vi_pham():
     assert near(base["penalty"], 0) and near(base["score"], base["base_score"])
     assert near(base["base_score"], -base["utility_sat"] + 0.12 * base["length"] / 100)
     assert near(base["total"], 0.45 * base["length"] + 100)
-    # Hai điểm đều ngoài bão V1 (28,48,r=11) nhưng dây nối xuyên qua.
     through = clean.copy()
     through[0:2] = [28, 20]
     through[3:5] = [28, 80]
     report = evaluate(through, problem)
     assert not report["geometry_ok"] and not report["valid"] and report["collision"] > 0
     assert report["penalty"] > 0
-    # Lấn biên an toàn: d = 12 < R = 13 vẫn là vi phạm.
     soft = clean.copy()
     soft[0:2] = [28, 59]
     soft[3:5] = [28, 59]
     report = evaluate(soft, problem)
     assert report["collision"] > 0 and not report["valid"]
-    # Quá pin: phạt đúng 30 * V^2.
     heavy = clean.copy()
     for k in range(10):
         heavy[3 * k + 2] = 25
     report = evaluate(heavy, problem)
     assert not report["energy_ok"] and report["geometry_ok"] and not report["valid"]
     assert near(report["penalty"], 30 * report["over"] ** 2)
-    # Ra map: x=108 -> g=0.08; evaluate không tự sửa nghiệm.
     outside = clean.copy()
     outside[0] = 108
     report = evaluate(outside, problem)
@@ -77,7 +69,6 @@ def test_vi_pham():
     assert near(report["map_violation"], 0.08 * 0.08)
     assert outside[0] == 108
     assert near(edge_excess(-5, 0, 100), 0.05) and edge_excess(40, 0, 100) == 0
-    # Pin đề xuất vượt 25 hoặc NaN: không hợp lệ.
     big = clean.copy()
     big[2] = 30
     assert not evaluate(big, problem)["box_ok"]
@@ -89,7 +80,6 @@ def test_vi_pham():
         assert False
     except ValueError:
         pass
-    # Ví dụ J = f0 + 100Pc + 30V^2 + 100Pmap ghép đúng.
     report = evaluate(through, problem)
     total = report["base_score"] + 100 * report["collision"] + 30 * report["over"] ** 2 + 100 * report["map_violation"]
     assert near(report["score"], total)
